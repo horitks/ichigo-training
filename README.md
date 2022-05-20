@@ -3,8 +3,10 @@
 Sorry, this repository(document) is in Japanese.
 
 ## Description
-いちご王国カレンダー訓練
+いちご王国カレンダー訓練用。
+
 5つの数字から四則演算を使って15を算出するゲームの練習アプリです。
+
 ただ出てきた数字を使って15になるように暗算するだけ。
 
 ## Usage

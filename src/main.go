@@ -1,7 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"go/ast"
+	"go/constant"
+	"go/parser"
+	"go/token"
 	"math/rand"
 	"time"
 )
@@ -26,6 +31,69 @@ func getNumber() []int {
 	return res
 }
 
+func eval(e string) (string, error) {
+	expr, err := parser.ParseExpr(e)
+	if err != nil {
+		return "", err
+	}
+
+	v, err := evalExpr(expr)
+	if err != nil {
+		return "", err
+	}
+
+	return v.String(), nil
+}
+
+func evalExpr(expr ast.Expr) (v constant.Value, rerr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			v, rerr = constant.MakeUnknown(), fmt.Errorf("%v", r)
+		}
+	}()
+
+	switch e := expr.(type) {
+	case *ast.ParenExpr:
+		return evalExpr(e.X)
+	case *ast.BinaryExpr:
+		return evalBinaryExpr(e)
+	case *ast.UnaryExpr:
+		return evalUnaryExpr(e)
+	case *ast.BasicLit:
+		return constant.MakeFromLiteral(e.Value, e.Kind, 0), nil
+	}
+
+	return constant.MakeUnknown(), errors.New("unkown formula")
+}
+
+func evalBinaryExpr(expr *ast.BinaryExpr) (constant.Value, error) {
+	x, err := evalExpr(expr.X)
+	if err != nil {
+		return constant.MakeUnknown(), err
+	}
+
+	y, err := evalExpr(expr.Y)
+	if err != nil {
+		return constant.MakeUnknown(), err
+	}
+
+	switch expr.Op {
+	case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
+		return constant.MakeBool(constant.Compare(x, expr.Op, y)), nil
+	}
+
+	return constant.BinaryOp(x, expr.Op, y), nil
+}
+
+func evalUnaryExpr(expr *ast.UnaryExpr) (constant.Value, error) {
+	x, err := evalExpr(expr.X)
+	if err != nil {
+		return constant.MakeUnknown(), err
+	}
+
+	return constant.UnaryOp(expr.Op, x, 0), nil
+}
+
 func main() {
 	fmt.Println("Pick up 5 card! Please make 15 with four arithmetic operations.")
 	fmt.Println("")
@@ -34,5 +102,23 @@ func main() {
 		fmt.Print(v)
 		fmt.Print("]")
 	}
+	fmt.Println("")
+
+	fmt.Println("Please enter the formula.")
+	var l string
+	fmt.Scan(&l)
+	r, err := eval(l)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	fmt.Println("[Calculation Results]: " + r)
+	if r == "15" {
+		fmt.Printf("\x1b[32m%s\x1b[0m", "Congratulations!!!!!")
+		fmt.Println("")
+		return
+	}
+	fmt.Printf("\x1b[31m%s\x1b[0m", "The result was not 15")
 	fmt.Println("")
 }

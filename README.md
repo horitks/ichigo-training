@@ -89,6 +89,6 @@ sh build_go_with_docker.sh
 
 ### バイナリでの実行確認
 ```
-cd src/bin/<仕様OSのディレクトリ>
+cd src/bin/<使用OSのディレクトリ>
 ./ichigotraning
 ```
